@@ -1,0 +1,5 @@
+# Project exclude paths
+/*
+!/src
+!/.gitignore
+!/pom.xml
