@@ -2,11 +2,14 @@ package entity;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 public class Room {
     private volatile static Room instance;
     Map<Integer, Boolean> hookahs = new HashMap<>();
+
 
     public static Room getInstance() {
         if (instance == null) {
