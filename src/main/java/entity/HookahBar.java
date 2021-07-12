@@ -9,8 +9,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 
-public class Room2 {
-    private volatile static Room2 instance;
+public class HookahBar {
+    private volatile static HookahBar instance;
     Map<Integer, Boolean> hookahs = new HashMap<>();
     Map<Integer, Integer> queue = new HashMap<>();
     Lock lock;
@@ -18,11 +18,11 @@ public class Room2 {
     ExecutorService executorService;
 
 
-    public static Room2 getInstance() {
+    public static HookahBar getInstance() {
         if (instance == null) {
-            synchronized (Room2.class) {
+            synchronized (HookahBar.class) {
                 if (instance == null) {
-                    instance = new Room2();
+                    instance = new HookahBar();
                 }
             }
         }
@@ -30,7 +30,7 @@ public class Room2 {
     }
 
 
-    public Room2() {
+    public HookahBar() {
         hookahs.put(1, true);
         hookahs.put(2, true);
         hookahs.put(3, true);
@@ -52,7 +52,7 @@ public class Room2 {
     }
 
     public int reserve(int id) throws InterruptedException {
-        Room2 room = Room2.getInstance();
+        HookahBar room = HookahBar.getInstance();
         lock.lock();
         try {
             while (room.check() == -1) {
@@ -63,7 +63,7 @@ public class Room2 {
             hookahs.put(number, false);
             //System.out.println(number + "кальян стал занят");
 
-            executorService.submit(new Visitor2(id));
+            executorService.submit(new Visitor(id));
             return number;
         } catch (InterruptedException e) {
             System.out.println(e);
@@ -74,7 +74,7 @@ public class Room2 {
     }
 
     public void put(int id) {
-        Room2 room = Room2.getInstance();
+        HookahBar room = HookahBar.getInstance();
         lock.lock();
         try {
             while (!isQueueNotFull()) {
@@ -85,7 +85,7 @@ public class Room2 {
 
             System.out.println(id + " зашёл в очередь");
             queue.put(queue.size(), id);
-            executorService.submit(new Visitor2(id));
+            executorService.submit(new Visitor(id));
 
         } catch (InterruptedException e) {
             System.out.println(e);
