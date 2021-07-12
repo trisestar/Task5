@@ -15,20 +15,40 @@ public class Visitor2 implements Runnable{
     Room2 room;
     final Random random = new Random();
 
-    public Visitor2(int id, int hookahId) {
+    public Visitor2(int id) {
         room = Room2.getInstance();
-        this.state = state;
+        this.state = State.QUEUE;
         this.id = id;
-        this.hookahId = hookahId;
     }
 
 
     @Override
     public void run() {
+        int response;
+        while (this.state == State.QUEUE){
+            response = room.push(id);
+            if (response != -1){
+                hookahId = response;
+                this.state = State.HOOKAH;
+                room.reserveHookah(response);
+            } else {
+                try {
+                    //System.out.println(id + " ожидает");
+                    TimeUnit.MILLISECONDS.sleep(1);
+                    room.unlock();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        smoke();
+    }
+
+    public void smoke(){
         try {
-            System.out.println(id + " начал курить кальян номер "+ hookahId);
+            //System.out.println(id + " начал курить кальян номер "+ hookahId);
             TimeUnit.SECONDS.sleep(random.nextInt(3)+2);
-            System.out.println(id + " закончил 2 курить кальян номер "+ hookahId);
+            System.out.println(id + " закончил курить кальян номер "+ hookahId);
             room.unreserve(hookahId);
 
         } catch (InterruptedException e) {

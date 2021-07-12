@@ -11,7 +11,7 @@ public class Main2 {
         List<Integer> visitorList = new ArrayList<>();
         Room2 room = Room2.getInstance();
         for (int i = 0; i < 10; i++) {
-            room.reserve(IdGenerator.generate());
+            room.put(IdGenerator.generate());
         }
 
         room.end();
