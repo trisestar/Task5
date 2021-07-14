@@ -1,5 +1,9 @@
 package entity;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -10,40 +14,34 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 public class HookahBar {
-    private volatile static HookahBar instance;
+    private static final Logger logger = LogManager.getLogger();
+    private static final int NUM_OF_HOOKAHS = 3;
+    private static final int SIZE_OF_QUEUE = 3;
     Map<Integer, Boolean> hookahs = new HashMap<>();
     Map<Integer, Integer> queue = new HashMap<>();
     Lock lock;
     Condition cond;
     ExecutorService executorService;
 
-
-    public static HookahBar getInstance() {
-        if (instance == null) {
-            synchronized (HookahBar.class) {
-                if (instance == null) {
-                    instance = new HookahBar();
-                }
-            }
-        }
-        return instance;
-    }
-
-
     public HookahBar() {
-        hookahs.put(1, true);
-        hookahs.put(2, true);
-        hookahs.put(3, true);
-        queue.put(1, -1);
-        queue.put(2, -1);
-        queue.put(3, -1);
+        for (int i = 1; i <= NUM_OF_HOOKAHS; i++) {
+            hookahs.put(i, true);
+        }
+        for (int i = 1; i <= SIZE_OF_QUEUE; i++) {
+            queue.put(i, -1);
+        }
+
         lock = new ReentrantLock();
         cond = lock.newCondition();
-        executorService = Executors.newFixedThreadPool(3);
+        executorService = Executors.newFixedThreadPool(SIZE_OF_QUEUE + NUM_OF_HOOKAHS);
+    }
+
+    public static HookahBar getInstance() {
+        return SingletonHolder.instance;
     }
 
     public int check() {
-        for (int i = 1; i <= hookahs.size(); i++) {
+        for (int i = 1; i <= NUM_OF_HOOKAHS; i++) {
             if (hookahs.get(i)) {
                 return i;
             }
@@ -56,17 +54,15 @@ public class HookahBar {
         lock.lock();
         try {
             while (room.check() == -1) {
-                //System.out.println("проверка");
                 cond.await();
             }
             int number = room.check();
             hookahs.put(number, false);
-            //System.out.println(number + "кальян стал занят");
-
             executorService.submit(new Visitor(id));
             return number;
         } catch (InterruptedException e) {
-            System.out.println(e);
+            logger.log(Level.ERROR, e);
+            Thread.currentThread().interrupt();
         } finally {
             lock.unlock();
         }
@@ -74,21 +70,17 @@ public class HookahBar {
     }
 
     public void put(int id) {
-        HookahBar room = HookahBar.getInstance();
         lock.lock();
         try {
             while (!isQueueNotFull()) {
-                //System.out.println("проверка");
                 cond.await();
             }
-
-
-            System.out.println(id + " зашёл в очередь");
             queue.put(queue.size(), id);
             executorService.submit(new Visitor(id));
 
         } catch (InterruptedException e) {
-            System.out.println(e);
+            logger.log(Level.ERROR, e);
+            Thread.currentThread().interrupt();
         } finally {
             lock.unlock();
         }
@@ -96,35 +88,30 @@ public class HookahBar {
     }
 
     public boolean isQueueNotFull() {
-        if (queue.get(queue.size()) == -1) {
-            return true;
-        }
-        return false;
+        return queue.get(SIZE_OF_QUEUE) == -1;
     }
 
     public int unreserve(int number) {
         lock.lock();
 
         hookahs.put(number, true);
-        //System.out.println(number + "кальян стал свободен");
+
         cond.signalAll();
         lock.unlock();
         return number;
     }
 
-    public void unlock(){
+    public void unlock() {
         lock.lock();
-        //System.out.println("unlock");
         cond.signalAll();
         lock.unlock();
 
     }
 
     public int push(int id) {
-        //System.out.println(queue);
-        for (int i = 1; i <= queue.size(); i++) {
+        for (int i = 1; i <= SIZE_OF_QUEUE; i++) {
             if (queue.get(i) == id) {
-                //System.out.println("найден в слоте" + i);
+
                 if (i == 1) {
                     int response = check();
                     if (response != -1) {
@@ -137,7 +124,6 @@ public class HookahBar {
                     queue.put(i, -1);
                     queue.put(i - 1, id);
 
-                    //System.out.println(id + " продвинулся на место " + (i - 1));
                     return -1;
                 }
             }
@@ -145,24 +131,28 @@ public class HookahBar {
         return -1;
     }
 
-
     public void reserveHookah(int number) {
-        //System.out.println(number + " кальян занят");
+
         hookahs.put(number, false);
     }
 
     public boolean isFree(int number) {
-        if (queue.get(number) == -1) {
-            //System.out.println("свободен");
-            return true;
-        }
-        //System.out.println("не свободен");
-        return false;
+        return queue.get(number) == -1;
     }
 
     public void end() {
         executorService.shutdown();
     }
 
+    @Override
+    public String toString() {
+        return "HookahBar{" +
+                "hookahs=" + hookahs +
+                ", queue=" + queue +
+                '}';
+    }
 
+    private static class SingletonHolder {
+        private static final HookahBar instance = new HookahBar();
+    }
 }
